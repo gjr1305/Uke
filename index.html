@@ -372,14 +372,20 @@ function checkAch(){const got=[];ACH.forEach(([n,,f])=>{if(!S.ach.includes(n)&&f
 let ctx=null;
 function setSession(t){try{if(navigator.audioSession)navigator.audioSession.type=t}catch(e){}}
 setSession('playback');
-function ac(){if(!ctx){const A=window.AudioContext||window.webkitAudioContext;ctx=new A()}if(ctx.state!=='running')ctx.resume().catch(()=>{});return ctx}
+let master=null;
+function ac(){if(!ctx){const A=window.AudioContext||window.webkitAudioContext;ctx=new A();
+  const comp=ctx.createDynamicsCompressor();comp.threshold.value=-18;comp.ratio.value=4;master=ctx.createGain();master.gain.value=1.8;master.connect(comp);comp.connect(ctx.destination);
+  ctx.onstatechange=()=>{if(ctx.state!=='running'&&ctx.state!=='closed')ctx.resume().catch(()=>{})}}
+ if(ctx.state!=='running')ctx.resume().catch(()=>{});return ctx}
+const OLDIOS=!navigator.audioSession&&(/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1));
 function silentWav(){const sr=8000,n=4000,b=new ArrayBuffer(44+n*2),v=new DataView(b),w=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};
  w(0,'RIFF');v.setUint32(4,36+n*2,true);w(8,'WAVE');w(12,'fmt ');v.setUint32(16,16,true);v.setUint16(20,1,true);v.setUint16(22,1,true);v.setUint32(24,sr,true);v.setUint32(28,sr*2,true);v.setUint16(32,2,true);v.setUint16(34,16,true);w(36,'data');v.setUint32(40,n*2,true);
  return URL.createObjectURL(new Blob([b],{type:'audio/wav'}))}
 let unlockedA=false;
 function unlockAudio(){const c=ac();if(unlockedA&&c.state==='running')return;unlockedA=true;
  try{const s=c.createBufferSource();s.buffer=c.createBuffer(1,1,22050);s.connect(c.destination);s.start(0)}catch(e){}
- try{const a=new Audio(silentWav());a.loop=true;a.setAttribute('playsinline','');a.play().catch(()=>{})}catch(e){}}
+ if(OLDIOS)try{const a=new Audio(silentWav());a.loop=true;a.setAttribute('playsinline','');a.play().catch(()=>{})}catch(e){}}
+function soundCheck(out){const c=ac();setTimeout(()=>{strum('C');if(out)out.textContent=`Audio: ${c.state} · ${c.sampleRate} Hz · ${navigator.audioSession?'session '+navigator.audioSession.type:OLDIOS?'older iPhone mode':'standard mode'}`},60)}
 ['pointerdown','touchend','click'].forEach(ev=>document.addEventListener(ev,unlockAudio,{capture:true}));
 const pcache={};let live=[];
 function pluckBuf(m){if(pcache[m])return pcache[m];const c=ac(),sr=c.sampleRate,f=440*2**((m-69)/12),N=Math.max(2,Math.round(sr/f)),len=Math.floor(sr*1.8);
@@ -388,9 +394,9 @@ function pluckBuf(m){if(pcache[m])return pcache[m];const c=ac(),sr=c.sampleRate,
  let lp=0;for(let i=0;i<N;i++){lp=lp*0.5+ring[i]*0.5;ring[i]=lp}
  let ix=0;for(let i=0;i<len;i++){const nx=(ix+1)%N,v=ring[ix];ring[ix]=0.996*0.5*(v+ring[nx]);d[i]=v*0.6*(i>len-2000?(len-i)/2000:1);ix=nx}
  return pcache[m]=b}
-function note(m,t,v){const c=ac(),s=c.createBufferSource(),g=c.createGain();s.buffer=pluckBuf(m);g.gain.value=v||0.5;s.connect(g).connect(c.destination);s.start(t||c.currentTime);live.push(s);return s}
+function note(m,t,v){const c=ac(),s=c.createBufferSource(),g=c.createGain();s.buffer=pluckBuf(m);g.gain.value=v||0.5;s.connect(g).connect(master);s.start(t||c.currentTime);live.push(s);return s}
 function strum(n,t,v,up){const c=ac();t=t||c.currentTime;let ms=chordMidi(n);if(up)ms=ms.reverse();ms.forEach((m,i)=>note(m,t+i*0.022,v||0.4));mic.mute=Math.max(mic.mute,t+2)}
-function click(t,acc){const c=ac(),o=c.createOscillator(),g=c.createGain();o.frequency.value=acc?3200:2500;g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(acc?0.35:0.2,t+0.003);g.gain.exponentialRampToValueAtTime(0.0001,t+0.05);o.connect(g).connect(c.destination);o.start(t);o.stop(t+0.07);live.push(o)}
+function click(t,acc){const c=ac(),o=c.createOscillator(),g=c.createGain();o.frequency.value=acc?3200:2500;g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(acc?0.35:0.2,t+0.003);g.gain.exponentialRampToValueAtTime(0.0001,t+0.05);o.connect(g).connect(master);o.start(t);o.stop(t+0.07);live.push(o)}
 function sfx(ok){const c=ac(),t=c.currentTime;if(ok){note(72,t,0.3);note(76,t+0.09,0.3);note(79,t+0.18,0.3)}else{note(55,t,0.35);note(54,t+0.12,0.3)}}
 function stopLive(){live.forEach(n=>{try{n.stop()}catch(e){}});live=[]}
 function playNote(n){const m=noteMidi(n);note(m);mic.mute=Math.max(mic.mute,ac().currentTime+1.6)}
@@ -567,7 +573,8 @@ const label=x=>isChord(x)?CHN(x):noteName(x);
 function answer(el,ft,ans,done){el.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{const ok=b.dataset.o===ans;el.querySelectorAll('.opt').forEach(x=>{x.disabled=true;if(x.dataset.o===ans)x.classList.add('right')});if(!ok)b.classList.add('wrong');sfx(ok);if(ok&&isChord(ans))strum(ans);feedback(ft,ok,ok?pick(['Nice!','Correct!','Spot on!','Yes!']):'It was '+label(ans),()=>done(ok?1:0))})}
 function stQuiz(st,el,ft,done){el.innerHTML=`<p class="kick">Quiz</p><h2>Which chord is this?</h2><div class="bigdia">${diagram(CH[st.c])}</div><div class="opts">${opts(st.c,st.pool).map(o=>`<button class="opt" data-o="${o}">${label(o)}</button>`).join('')}</div>`;answer(el,ft,st.c,done)}
 function stEar(st,el,ft,done){const ch=isChord(st.c),go=()=>ch?strum(st.c):playNote(st.c);
- el.innerHTML=`<p class="kick">Ear training</p><h2>${ch?'Which chord do you hear?':'Which note do you hear?'}</h2><button class="bigplay" aria-label="Play again">${PLAY}</button><p class="note" style="text-align:center;margin:-8px 0 14px">Tap the yellow button to play it again. No sound? Turn off silent mode and turn up your volume.</p><div class="opts">${opts(st.c,st.pool).map(o=>`<button class="opt" data-o="${o}">${label(o)}</button>`).join('')}</div>`;
+ el.innerHTML=`<p class="kick">Ear training</p><h2>${ch?'Which chord do you hear?':'Which note do you hear?'}</h2><button class="bigplay" aria-label="Play again">${PLAY}</button><p class="note" style="text-align:center;margin:-8px 0 14px">Tap the yellow button to play it again. No sound? Turn up your volume, then <button class="btn ghost" id="sck" style="min-height:36px;padding:0 12px;font-size:14px">run a sound check</button></p><p class="note" id="sckout" style="text-align:center"></p><div class="opts">${opts(st.c,st.pool).map(o=>`<button class="opt" data-o="${o}">${label(o)}</button>`).join('')}</div>`;
+ el.querySelector('#sck').onclick=()=>soundCheck(el.querySelector('#sckout'));
  el.querySelector('.bigplay').onclick=go;try{go()}catch(e){}answer(el,ft,st.c,done)}
 function stBuild(st,el,ft,done){const tgt=CH[st.c];let cur=[0,0,0,0],tries=0,hint=false;
  el.innerHTML=`<p class="kick">Build it</p><h2 class="chname">${CHN(st.c)}</h2><p class="mute" style="text-align:center;margin:0">Tap the fretboard to place your fingers. Tap a dot again to lift it.</p><div class="bigdia build"></div>`;
