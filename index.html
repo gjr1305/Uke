@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Ukulele Quest</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* VOICE: playful daily practice game, warm and encouraging, never childish
+   IDEA: an island trail you walk one lesson at a time, beach to reef to volcano
+   PICTURE: the winding lesson path with round stepping stones, plus the scrolling note lane in play
+   COLOUR and TYPE: lagoon teal ground, sunshine yellow accent, hibiscus for misses; Baloo 2 + Nunito
+   LAYOUT: phone-first single column, sticky stats bar, bottom tab bar, full-screen lesson player */
+:root{color-scheme:light dark;
+--bg:light-dark(#f6f1e7,#0a2124);--card:light-dark(#fff,#123338);--card2:light-dark(#efe7d8,#184146);
+--ink:light-dark(#163034,#ebf6f3);--mute:light-dark(#587073,#9dbfbb);--line:light-dark(#e2d8c6,#24494e);
+--sea:#0d575e;--sea2:#14808a;--sun:#ffc53d;--hib:#ff5a6e;--leaf:#2bb673;--lock:light-dark(#d6cfc1,#2a484c);
+--safe-b:env(safe-area-inset-bottom,0px);--safe-t:env(safe-area-inset-top,0px)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Nunito,system-ui,sans-serif;overflow-x:clip}
+h1,h2,h3,.disp{font-family:"Baloo 2",Nunito,sans-serif;line-height:1.05;margin:0;text-wrap:balance}
+button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--sun);outline-offset:2px}
+svg{display:block}
+.app{max-width:560px;margin:0 auto;padding-bottom:calc(84px + var(--safe-b))}
+.top{position:sticky;top:0;z-index:20;background:var(--sea);color:#fff;padding:calc(10px + var(--safe-t)) 16px 10px}
+.toprow{display:flex;align-items:center;gap:8px}
+.logo{font-family:"Baloo 2";font-weight:800;font-size:22px;margin-right:auto;letter-spacing:-.01em}
+.pill{display:inline-flex;align-items:center;gap:5px;background:rgba(255,255,255,.14);border-radius:99px;padding:5px 11px;font-weight:800;font-size:15px;min-height:36px}
+.pill svg{width:18px;height:18px}
+.pill.fire svg{fill:var(--sun)}.pill.cold svg{fill:rgba(255,255,255,.5)}
+.micb{width:40px;height:40px;border-radius:50%;justify-content:center;padding:0}
+.micb.on{background:var(--leaf)}.micb svg{fill:none;stroke:#fff;stroke-width:2}
+.goal{display:flex;align-items:center;gap:10px;margin-top:8px;font-size:13px;font-weight:700;opacity:.95}
+.bar{flex:1;height:10px;background:rgba(255,255,255,.2);border-radius:9px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--sun);border-radius:9px;transition:width .4s}
+.view{padding:16px}
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--card);border-top:1px solid var(--line);display:flex;justify-content:center;padding-bottom:var(--safe-b)}
+.nav div{display:flex;width:100%;max-width:560px}
+.nav button{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;padding:9px 0 8px;font-size:12px;font-weight:800;color:var(--mute);min-height:60px}
+.nav svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.nav button.on{color:var(--sea2)}
+:root[data-theme=dark] .nav button.on{color:var(--sun)}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]) .nav button.on{color:var(--sun)}}
+.world{border-radius:22px;overflow:hidden;position:relative;margin:8px 0 18px;color:#fff}
+.world svg{width:100%;height:auto}
+.world .wt{position:absolute;left:16px;bottom:12px;right:16px}
+.world h2{font-size:28px;text-shadow:0 2px 0 rgba(0,0,0,.18)}
+.world p{margin:2px 0 0;font-weight:700;font-size:14px;opacity:.95}
+.trail{display:flex;flex-direction:column;align-items:center;gap:6px;padding:4px 0 22px}
+.stone{display:flex;flex-direction:column;align-items:center;width:150px}
+.node{width:76px;height:76px;border-radius:50%;display:grid;place-items:center;font-family:"Baloo 2";font-weight:800;font-size:26px;color:#173034;box-shadow:0 7px 0 rgba(0,0,0,.18),inset 0 -6px 0 rgba(0,0,0,.08);position:relative}
+.node.lock{background:var(--lock);color:var(--mute);box-shadow:0 6px 0 rgba(0,0,0,.1)}
+.node.lock svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:2.2}
+.node.cur::after{content:"";position:absolute;inset:-9px;border-radius:50%;border:4px solid var(--sun);animation:pulse 1.6s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(1.08);opacity:.5}}
+@media(prefers-reduced-motion:reduce){.node.cur::after{animation:none}}
+.stone b{font-size:14px;text-align:center;margin-top:10px;line-height:1.2}
+.stars{display:flex;gap:2px;margin-top:3px}
+.stars svg{width:16px;height:16px;fill:var(--lock)}.stars svg.on{fill:var(--sun)}
+.card{background:var(--card);border-radius:20px;padding:16px;margin-bottom:14px;box-shadow:0 2px 0 var(--line)}
+.card h3{font-size:22px}
+.card p{margin:6px 0 12px;color:var(--mute)}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:50px;padding:0 22px;border-radius:16px;font-weight:800;font-size:17px;background:var(--card2);box-shadow:0 4px 0 rgba(0,0,0,.14)}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 rgba(0,0,0,.14)}
+.btn.go{background:var(--leaf);color:#fff}.btn.sun{background:var(--sun);color:#173034}
+.btn.ghost{background:transparent;box-shadow:inset 0 0 0 2px var(--line)}
+.btn.wide{width:100%}
+.btn:disabled{opacity:.5}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.tile{background:var(--card);border-radius:16px;padding:12px;text-align:center}
+.tile b{display:block;font-family:"Baloo 2";font-size:28px;line-height:1.1}
+.tile span{font-size:13px;color:var(--mute);font-weight:700}
+.seg{display:flex;background:var(--card2);border-radius:14px;padding:4px;margin-bottom:14px}
+.seg button{flex:1;min-height:44px;border-radius:11px;font-weight:800;color:var(--mute)}
+.seg button.on{background:var(--card);color:var(--ink);box-shadow:0 2px 0 var(--line)}
+select,input[type=range]{font:inherit;font-size:16px}
+select{min-height:44px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--ink);padding:0 10px;width:100%}
+input[type=range]{width:100%;accent-color:var(--sea2);height:44px}
+label.f{display:block;font-weight:800;font-size:14px;margin:10px 0 4px}
+/* player */
+.player{position:fixed;inset:0;z-index:50;background:var(--bg);display:flex;flex-direction:column}
+.ph{display:flex;align-items:center;gap:12px;padding:calc(10px + var(--safe-t)) 16px 10px;max-width:560px;width:100%;margin:0 auto}
+.ph .x{width:44px;height:44px;border-radius:12px;font-size:28px;line-height:1;color:var(--mute)}
+.ph .bar{background:var(--card2);height:14px}.ph .bar i{background:var(--leaf)}
+.stage{flex:1;overflow-y:auto;padding:8px 18px 20px;max-width:560px;width:100%;margin:0 auto}
+.pf{padding:12px 18px calc(14px + var(--safe-b));max-width:560px;width:100%;margin:0 auto;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.pf .btn.go{flex:1}
+.kick{font-weight:800;color:var(--sea2);margin:6px 0 4px;font-size:15px}
+:root[data-theme=dark] .kick{color:var(--sun)}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]) .kick{color:var(--sun)}}
+.stage h2{font-size:32px;margin:2px 0 10px}
+.prose p{margin:0 0 12px;font-size:17px}
+.mute{color:var(--mute)}
+.chrow{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0}
+.ccard{background:var(--card);border-radius:16px;padding:10px 8px 8px;width:104px;display:flex;flex-direction:column;align-items:center;box-shadow:0 3px 0 var(--line)}
+.ccard svg{width:80px}.ccard b{font-family:"Baloo 2";font-size:22px;line-height:1}.ccard small{color:var(--mute);font-size:12px}
+.dia .str{stroke:var(--ink);stroke-width:1.4}.dia .fr{stroke:var(--mute);stroke-width:1.2}.dia .nut{stroke:var(--ink);stroke-width:4}
+.dia .dot{fill:var(--sea2)}.dia .opn{fill:none;stroke:var(--ink);stroke-width:1.6}.dia text{fill:var(--mute);font:700 9px Nunito,sans-serif;text-anchor:middle}
+.dia .hot{fill:transparent}
+.bigdia{width:min(220px,60vw);margin:6px auto 14px}
+.bigdia.build .hot:hover{fill:rgba(20,128,138,.12)}
+.chname{text-align:center;font-size:56px!important}
+.opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.opt{min-height:60px;border-radius:16px;background:var(--card);font-family:"Baloo 2";font-weight:800;font-size:24px;box-shadow:0 4px 0 var(--line)}
+.opt.right{background:var(--leaf);color:#fff}.opt.wrong{background:var(--hib);color:#fff}
+.bigplay{width:120px;height:120px;border-radius:50%;background:var(--sun);display:grid;place-items:center;margin:16px auto 22px;box-shadow:0 7px 0 rgba(0,0,0,.18)}
+.bigplay svg{width:46px;height:46px;fill:#173034}
+.fb{display:flex;align-items:center;gap:12px;width:100%;flex-wrap:wrap;border-radius:16px;padding:12px 14px;font-weight:800;font-size:17px}
+.fb.ok{background:color-mix(in srgb,var(--leaf) 20%,transparent)}.fb.no{background:color-mix(in srgb,var(--hib) 20%,transparent)}
+.fb b{flex:1 1 160px}
+.meter{height:14px;background:var(--card2);border-radius:9px;overflow:hidden;margin:6px 0}
+.meter i{display:block;height:100%;width:0;background:var(--leaf);transition:width .1s}
+.seq{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 12px}
+.seq span{min-width:36px;height:36px;border-radius:10px;display:grid;place-items:center;font-weight:800;background:var(--card);color:var(--mute)}
+.seq span.done{background:var(--leaf);color:#fff}.seq span.now{background:var(--sun);color:#173034;transform:scale(1.12)}
+.neck{background:var(--card);border-radius:16px;padding:8px;margin:8px 0}
+.neck svg{width:100%;height:auto}
+.neck .str{stroke:var(--ink);stroke-width:1.4}.neck .fr{stroke:var(--mute)}.neck .nut{stroke:var(--ink);stroke-width:4}
+.neck text{fill:var(--mute);font:800 11px Nunito,sans-serif;text-anchor:middle}.neck .dot{fill:var(--sun);stroke:#173034;stroke-width:1.5}.neck .dot2{fill:var(--sea2)}
+.neck .dt{fill:#173034;font-size:11px}
+.big{font-family:"Baloo 2";font-size:44px;font-weight:800;text-align:center;margin:6px 0}
+.big small{display:block;font:700 15px Nunito,sans-serif;color:var(--mute)}
+/* rhythm */
+.rch{display:flex;align-items:flex-end;gap:12px;min-height:84px}
+.rch .now{font-family:"Baloo 2";font-weight:800;font-size:52px;line-height:1}
+.rch .nxt{color:var(--mute);font-weight:800;padding-bottom:8px}
+.rch svg{width:56px}
+.lane{position:relative;height:120px;background:var(--sea);border-radius:18px;overflow:hidden;margin:10px 0;touch-action:manipulation}
+.lane .hit{position:absolute;left:60px;top:10px;bottom:10px;width:4px;margin-left:-2px;background:var(--sun);border-radius:4px;box-shadow:0 0 0 6px rgba(255,197,61,.18)}
+.lane .beat{position:absolute;top:0;bottom:0;width:1px;background:rgba(255,255,255,.14)}
+.lane .bar1{background:rgba(255,255,255,.35);width:2px}
+.nt{position:absolute;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:22px;color:#173034;will-change:transform;left:0}
+.nt.D{background:#ffc53d}.nt.U{background:#7fe0d8}.nt.X{background:#ff8a5b}.nt.G{background:#ffc53d}.nt.C{background:#7fe0d8}.nt.E{background:#ff8a5b}.nt.A{background:#c9f06b}
+.nt.hit{opacity:0;transform:scale(1.6)!important;transition:all .2s}.nt.miss{opacity:.25}
+.cnt{position:absolute;inset:0;display:grid;place-items:center;font-family:"Baloo 2";font-size:64px;font-weight:800;color:#fff;pointer-events:none}
+.rstat{display:flex;justify-content:space-between;font-weight:800;min-height:26px}
+.judg.p{color:var(--leaf)}.judg.g{color:var(--sea2)}.judg.m{color:var(--hib)}
+.pads{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));margin-top:8px}
+.pad{min-height:84px;border-radius:18px;background:var(--card);font-family:"Baloo 2";font-weight:800;font-size:22px;box-shadow:0 5px 0 var(--line);touch-action:manipulation;user-select:none;-webkit-user-select:none}
+.pad.fl{background:var(--sun);color:#173034}
+.tog{display:inline-flex;align-items:center;gap:8px;font-weight:800;min-height:44px}
+.tog input{width:22px;height:22px;accent-color:var(--leaf)}
+.res{text-align:center;padding-top:20px}
+.res .stars{justify-content:center;gap:10px;margin:18px 0}
+.res .stars svg{width:64px;height:64px}
+.res .stars svg.on{animation:pop .5s backwards}
+.res .stars svg:nth-child(2){animation-delay:.15s}.res .stars svg:nth-child(3){animation-delay:.3s}
+@keyframes pop{from{transform:scale(0) rotate(-40deg)}}
+@media(prefers-reduced-motion:reduce){.res .stars svg.on{animation:none}}
+.gain{display:inline-block;background:var(--sun);color:#173034;border-radius:14px;padding:6px 16px;font-family:"Baloo 2";font-size:28px;font-weight:800}
+.counter{font-family:"Baloo 2";font-size:84px;font-weight:800;text-align:center;line-height:1}
+.chg{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.chg div{background:var(--card);border-radius:16px;padding:10px;text-align:center;border:3px solid transparent}
+.chg div.tg{border-color:var(--sun)}
+.chg b{font-family:"Baloo 2";font-size:30px}
+.chg svg{width:80px;margin:0 auto}
+.step{display:flex;align-items:center;justify-content:center;gap:16px;margin:10px 0}
+.step button{width:56px;height:56px;border-radius:50%;background:var(--card);font-size:28px;font-weight:800;box-shadow:0 3px 0 var(--line)}
+/* tuner */
+.gauge{max-width:320px;margin:0 auto}
+.gauge path.arc{fill:none;stroke:var(--card2);stroke-width:14;stroke-linecap:round}
+.gauge .ok{stroke:var(--leaf)}
+.gauge line{stroke:var(--ink);stroke-width:4;stroke-linecap:round;transition:transform .12s}
+.gauge text{fill:var(--mute);font:800 12px Nunito;text-anchor:middle}
+.tstr{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.tstr button{min-height:64px;border-radius:16px;background:var(--card);font-family:"Baloo 2";font-size:26px;font-weight:800;box-shadow:0 3px 0 var(--line)}
+.tstr button.on{background:var(--sun);color:#173034}
+.mdots{display:flex;justify-content:center;gap:12px;margin:16px 0}
+.mdots i{width:24px;height:24px;border-radius:50%;background:var(--card2)}
+.mdots i.on{background:var(--sun)}.mdots i.on.a{background:var(--hib)}
+.lib{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:10px}
+.lib .ccard{width:auto}.lib .ccard.lk{opacity:.55}
+.ach{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.ach div{background:var(--card);border-radius:16px;padding:12px;display:flex;gap:10px;align-items:center}
+.ach svg{width:40px;height:40px;flex:none}
+.ach b{display:block;font-size:15px;line-height:1.2}.ach small{color:var(--mute);font-size:13px;line-height:1.2;display:block}
+.ach .off{opacity:.45;filter:grayscale(1)}
+.sheet{position:fixed;inset:0;z-index:80;background:rgba(5,25,28,.55);display:flex;align-items:flex-end;justify-content:center}
+.sheet>div{background:var(--bg);width:100%;max-width:560px;border-radius:24px 24px 0 0;padding:22px 18px calc(20px + var(--safe-b));max-height:90vh;overflow:auto}
+.sheet h2{font-size:30px;margin-bottom:6px}
+.sheet p{margin:6px 0 14px}
+.toast{position:fixed;left:50%;top:calc(14px + var(--safe-t));transform:translateX(-50%);z-index:99;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:14px;font-weight:800;max-width:90vw;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+.note{font-size:13px;color:var(--mute);margin-top:10px}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <div class="toprow">
+      <div class="logo">Ukulele Quest</div>
+      <span class="pill" id="streak"></span>
+      <span class="pill" id="lvl"></span>
+      <button class="pill micb" id="micb" aria-label="Listening"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+    </div>
+    <div class="goal"><span>Daily goal</span><div class="bar"><i id="goalbar"></i></div><span id="goaltx"></span></div>
+  </header>
+  <main class="view" id="view"></main>
+</div>
+<nav class="nav"><div>
+  <button data-tab="path" class="on"><svg viewBox="0 0 24 24"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15"/></svg>Path</button>
+  <button data-tab="practice"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.5"/></svg>Practice</button>
+  <button data-tab="tools"><svg viewBox="0 0 24 24"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg>Tools</button>
+  <button data-tab="me"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg>Me</button>
+</div></nav>
+<script>
+{
+const $=s=>document.querySelector(s);
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const STAR='<svg viewBox="0 0 24 24" class="CLS"><polygon points="12,2 15,9 22,9.5 16.5,14 18.5,21 12,17 5.5,21 7.5,14 2,9.5 9,9"/></svg>';
+const star=on=>STAR.replace('CLS',on?'on':'');
+const FLAME='<svg viewBox="0 0 24 24"><path d="M12 2c1 4 6 6 6 12a6 6 0 0 1-12 0c0-3 2-5 3-6 0 2 1 3 2 3 0-4-1-6 1-9z"/></svg>';
+const LOCK='<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>';
+const PLAY='<svg viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></svg>';
+
+/* ---------- music data ---------- */
+const OPEN=[67,60,64,69],SN=['G','C','E','A'];
+const NN=['C','C#','D','E♭','E','F','F#','G','A♭','A','B♭','B'];
+const CH={C:'0003',Am:'2000',F:'2010',G:'0232',G7:'0212',C7:'0001',D:'2220',Em:'0432',Dm:'2210',A:'2100',E7:'1202',A7:'0100',D7:'2223',Am7:'0000',Cmaj7:'0002',Bb:'3211',Bm:'4222',B7:'2322',Gm:'0231',E:'4442'};
+const CHN=n=>n.replace('b','♭');
+const chordMidi=n=>[0,1,2,3].map(i=>OPEN[i]+ +CH[n][i]);
+const PCS={};for(const n in CH)PCS[n]=[...new Set(chordMidi(n).map(m=>m%12))];
+const noteMidi=n=>OPEN[SN.indexOf(n[0])]+ +n.slice(1);
+const noteName=n=>NN[noteMidi(n)%12];
+const isChord=x=>x in CH;
+
+/* ---------- curriculum ---------- */
+const info=(t,h,ch,nts)=>({k:'info',t,h,ch,nts});
+const quiz=(pool,n=2)=>({k:'quiz',pool,n});
+const ear=(pool,n=2)=>({k:'ear',pool,n});
+const build=c=>({k:'build',c});
+const play=c=>({k:'play',c});
+const notes=(n,t)=>({k:'notes',n:n.split(' '),t});
+const rhy=(t,pat,o)=>Object.assign({k:'rhythm',t,pat,sub:2,meter:4,bars:4,bpm:70},o);
+const chg=(a,b,goal)=>({k:'changes',a,b,goal:goal||25,dur:60});
+const jam=(chords,bpm,loops)=>({k:'jam',chords,bpm,loops});
+const song=s=>s.split(' ');
+
+const WORLDS=[
+{id:'b',name:'Beach Basics',sub:'Basics · chords C, Am, F, G',col:'#ffc53d',lessons:[
+ {t:'Meet your ukulele',d:'How to hold it, the four strings, and your first sounds.',s:[
+  info('Hold it like this','<p>Rest the body against your belly with the neck pointing to your left. Your left hand presses the strings; your right hand strums where the neck meets the body.</p><p>Keep your shoulders loose. A light grip sounds better than a tight one.</p>'),
+  info('G, C, E, A','<p>From the string nearest your face down to the one nearest the floor: <b>G, C, E, A</b>. Sing it as “My dog has fleas”.</p><p>The G is tuned higher than the C. That bright, bouncy sound is what makes a ukulele sound like one. Tap each string to hear it.</p>',null,['G0','C0','E0','A0']),
+  ear(['G0','C0','E0','A0'],3),
+  notes('G0 C0 E0 A0','Pluck each open string')]},
+ {t:'Your first notes',d:'Fret numbers, and six notes on the E and A strings.',s:[
+  info('Frets','<p>Frets count up from the headstock. “3rd fret” means press with a fingertip just behind the third metal wire.</p><p>Press close to the wire, not on top of it, and the note rings clean with less effort.</p>',null,['A0','A2','A3','E0','E1','E3']),
+  notes('A0 A2 A3 E0 E1 E3','Play each note'),
+  ear(['A0','A2','A3'],2)]},
+ {t:'First chord: C',d:'One finger, four strings, your first strum.',s:[
+  info('The C chord','<p>Put your ring finger on the <b>3rd fret of the A string</b>. Leave the other three strings open.</p><p>Strum down across all four with the nail side of your index finger.</p>',['C']),
+  build('C'),play('C'),
+  rhy('Four down-strums','DDDD',{sub:1,bpm:70,chords:song('C C C C')})]},
+ {t:'A minor',d:'A sad-sounding chord and your first chord change.',s:[
+  info('The Am chord','<p>Middle finger on the <b>2nd fret of the G string</b>. That is it.</p><p>Going from C to Am, lift one finger and place the other. Practise it slowly until it feels automatic.</p>',['Am','C']),
+  build('Am'),quiz(['C','Am'],2),play('Am'),chg('C','Am',24)]},
+ {t:'The F chord',d:'Two fingers and the C, Am, F loop heard in hundreds of songs.',s:[
+  info('The F chord','<p>Index finger on the <b>1st fret of the E string</b>, middle finger on the <b>2nd fret of the G string</b>.</p><p>Notice Am and F share the middle finger. Keep it planted when you change.</p>',['F','Am']),
+  build('F'),quiz(['C','Am','F'],2),
+  rhy('Change on the bar line','DDDD',{sub:1,bpm:70,chords:song('C Am F C')}),chg('Am','F',20)]},
+ {t:'The G chord',d:'The triangle shape that completes the big four.',s:[
+  info('The G chord','<p>Index on the <b>2nd fret of the C string</b>, middle on the <b>2nd fret of the A string</b>, ring on the <b>3rd fret of the E string</b>. It makes a small triangle.</p>',['G']),
+  build('G'),quiz(['C','Am','F','G'],2),play('G'),chg('C','G',20)]},
+ {t:'Song: When the Saints',d:'Your first full song, one strum per beat.',s:[
+  info('When the Saints Go Marching In','<p>A traditional song using C, F and G. One down-strum per beat. Watch the chord above the lane and change on the first beat of each bar.</p><p>Turn on Backing if you want to hear the chords with you.</p>',['C','F','G']),
+  rhy('When the Saints','DDDD',{sub:1,bpm:80,chords:song('C C C C C C G G C C F F C G C C'),song:true})]},
+ {t:'Beach boss',d:'Everything from the beach, plus a second song.',s:[
+  quiz(['C','Am','F','G'],3),ear(['C','Am'],2),build('G'),
+  rhy('Twinkle, Twinkle, Little Star','DDDD',{sub:1,bpm:90,chords:song('C C F C F C G C C F C G C F C G'),song:true})]}
+]},
+{id:'i',name:'Reef Rhythms',sub:'Intermediate · strums, sevenths, melody',col:'#7fe0d8',lessons:[
+ {t:'Down and up',d:'Add up-strums and keep your hand moving.',s:[
+  info('The up-strum','<p>Strum down with the nail side of your index finger, then back up with the pad. Keep your hand swinging like a pendulum, even when you skip a strum.</p>'),
+  rhy('Down-up eighths','DUDUDUDU',{bpm:65,chords:song('C C Am Am')}),
+  rhy('Down-up through four chords','DUDUDUDU',{bpm:75,chords:song('C Am F G')})]},
+ {t:'The island strum',d:'The classic ukulele groove.',s:[
+  info('D, D-U, U-D-U','<p>Count “1, 2 and, and 4 and”. Down on 1, down-up on 2, skip beat 3, up on the “and”, then down-up on 4.</p><p>Your hand never stops moving. On the gaps it just misses the strings.</p>'),
+  rhy('Island strum, slow','D.DU.UDU',{bpm:60,chords:song('C C C C')}),
+  rhy('Island strum with changes','D.DU.UDU',{bpm:75,chords:song('C Am F G')})]},
+ {t:'Sevenths: G7 and C7',d:'Bluesy chords that pull you home.',s:[
+  info('G7 and C7','<p><b>G7:</b> index on the 1st fret of the E string, middle on the 2nd fret of the C string, ring on the 2nd fret of the A string.</p><p><b>C7:</b> index on the 1st fret of the A string.</p>',['G7','C7']),
+  build('G7'),build('C7'),quiz(['C','G7','C7','F'],3),chg('C','G7',25)]},
+ {t:'Minor moods: Em and Dm',d:'Two minor chords and your ear for major vs minor.',s:[
+  info('Em and Dm','<p><b>Em:</b> index on 2nd fret A, middle on 3rd fret E, ring on 4th fret C.</p><p><b>Dm:</b> middle on 2nd fret G, ring on 2nd fret C, index on 1st fret E.</p><p>Minor chords sound darker. Listen to Em next to G, and Dm next to F.</p>',['Em','Dm','G','F']),
+  build('Em'),build('Dm'),ear(['Em','G','Dm','F'],2),quiz(['Em','Dm','Am','G'],2),chg('Dm','G7',20)]},
+ {t:'D, A and E7',d:'Three new shapes that open up the key of A.',s:[
+  info('D, A and E7','<p><b>D:</b> three fingers in a row on the 2nd fret of G, C and E.</p><p><b>A:</b> middle on 2nd fret G, index on 1st fret C.</p><p><b>E7:</b> index on 1st fret G, middle on 2nd fret C, ring on 2nd fret A.</p>',['D','A','E7']),
+  build('D'),build('A'),build('E7'),quiz(['D','A','E7','G'],3),chg('A','D',22)]},
+ {t:'Melody: Ode to Joy',d:'Pick a famous tune note by note.',s:[
+  info('Notes on the C and E strings','<p>C string: open is <b>C</b>, 2nd fret is <b>D</b>. E string: open is <b>E</b>, 1st fret <b>F</b>, 3rd fret <b>G</b>.</p><p>That is all you need for Beethoven’s Ode to Joy.</p>',null,['C0','C2','E0','E1','E3']),
+  notes('E0 E0 E1 E3 E3 E1 E0 C2 C0 C0 C2 E0 E0 C2 C2','Ode to Joy'),
+  ear(['C0','C2','E0','E1','E3'],2)]},
+ {t:'Fingerpicking',d:'Thumb, index, middle: a gentle picking pattern.',s:[
+  info('Pick, don’t strum','<p>Thumb plays the <b>C</b> string, index plays <b>E</b>, middle plays <b>A</b>.</p><p>The pattern is C, E, A, E. Hold each chord shape while you pick.</p>'),
+  rhy('Thumb, index, middle','CEAECEAE',{bpm:60,chords:song('C Am F G')})]},
+ {t:'Song: Oh! Susanna',d:'A full song with the island strum.',s:[
+  info('Oh! Susanna','<p>A Stephen Foster song from 1848, played with the island strum. C, F and G only, so put your attention on keeping the strum steady.</p>',['C','F','G']),
+  rhy('Oh! Susanna','D.DU.UDU',{bpm:85,chords:song('C C C G C C G C F F C C C C G C'),song:true})]}
+]},
+{id:'a',name:'Volcano Peak',sub:'Advanced · barres, chucks, scales, fingerstyle',col:'#ff8a5b',lessons:[
+ {t:'Barre chord: B♭',d:'Your first barre, the chord everyone fears.',s:[
+  info('The B♭ chord','<p>Lay your index finger flat across the <b>1st fret of the E and A strings</b>. Middle on the 2nd fret of C, ring on the 3rd fret of G.</p><p>Roll the index slightly onto its bony side. It needs less pressure than you think.</p>',['Bb']),
+  build('Bb'),play('Bb'),chg('F','Bb',16)]},
+ {t:'Moveable shapes',d:'Bm, B7 and Gm: shapes you can slide up the neck.',s:[
+  info('Bm, B7 and Gm','<p><b>Bm:</b> index barres the 2nd fret, ring on 4th fret G.</p><p><b>B7:</b> index barres the 2nd fret, middle on 3rd fret C.</p><p><b>Gm:</b> middle on 2nd fret C, ring on 3rd fret E, index on 1st fret A.</p><p>Slide a barre shape up two frets and you have a new chord with the same quality.</p>',['Bm','B7','Gm']),
+  build('Bm'),build('B7'),build('Gm'),quiz(['Bm','B7','Gm','Bb','Dm'],3)]},
+ {t:'The chuck',d:'A percussive snare hit on beats 2 and 4.',s:[
+  info('The chuck','<p>On beats 2 and 4, strum down while the side of your strumming palm lands on the strings. It mutes them and makes a short “chk”, like a snare drum.</p><p>Pattern: down, chuck-up, up, chuck-up.</p>'),
+  rhy('Chuck groove','D.XU.UXU',{bpm:75,chords:song('C Am F G')})]},
+ {t:'Triplet strum',d:'Three even strokes per beat.',s:[
+  info('Triplets','<p>Down-up-down inside one beat, evenly spaced. Count “1-trip-let, 2-trip-let”.</p><p>Start slow. Speed comes from relaxing, not forcing.</p>'),
+  rhy('Triplets','DUDDUDDUDDUD',{sub:3,bpm:55,chords:song('Am Am F G')})]},
+ {t:'C major scale',d:'Every note in the key of C, up and back down.',s:[
+  info('The C major scale','<p>C D E F G A B C across three strings. C string 0, 2. E string 0, 1, 3. A string 0, 2, 3.</p><p>Use one finger per fret: fret 1 index, fret 2 middle, fret 3 ring.</p>',null,['C0','C2','E0','E1','E3','A0','A2','A3']),
+  notes('C0 C2 E0 E1 E3 A0 A2 A3 A2 A0 E3 E1 E0 C2 C0','C major, up and down'),
+  ear(['C0','C2','E0','E1','E3','A0','A2'],2)]},
+ {t:'Jam: A minor pentatonic',d:'Five notes that always sound good. Improvise!',s:[
+  info('A minor pentatonic','<p>A, C, D, E, G. On the uke: C string 0 and 2, E string 0 and 3, A string 0, 3 and 5.</p><p>Over a backing of Am, G, F, E7, any of these notes will fit. Mix them, repeat them, leave gaps.</p>',null,['C0','C2','E0','E3','A0','A3','A5']),
+  notes('C0 C2 E0 E3 A0 A3 A5','Learn the scale'),
+  jam(song('Am G F E7'),84,4)]},
+ {t:'Fingerstyle arpeggios',d:'All four strings picked one at a time.',s:[
+  info('Arpeggios','<p>Thumb on G and C, index on E, middle on A. Pattern: G C E A, then back down E A E.</p><p>Let every note ring into the next.</p>'),
+  rhy('Arpeggio pattern','GCEACEAE',{bpm:66,chords:song('Am C D F')})]},
+ {t:'Song: House of the Rising Sun',d:'The final climb: a traditional song in 3/4.',s:[
+  info('House of the Rising Sun','<p>A traditional folk song in 3/4: three beats per bar. Strum down, down-up, down-up.</p><p>Am, C, D, F and E7. You know them all now.</p>',['Am','C','D','F','E7']),
+  rhy('House of the Rising Sun','D.DUDU',{meter:3,bpm:90,chords:song('Am C D F Am C E7 E7 Am C D F Am E7 Am Am'),song:true})]}
+]}];
+const LESSONS=[];WORLDS.forEach(w=>w.lessons.forEach((l,i)=>{l.id=w.id+(i+1);l.w=w;l.n=i+1;l.idx=LESSONS.length;LESSONS.push(l)}));
+const PATS=[{n:'Down strums',p:'DDDD',sub:1},{n:'Down-up',p:'DUDUDUDU',sub:2},{n:'Island strum',p:'D.DU.UDU',sub:2},{n:'Chuck strum',p:'D.XU.UXU',sub:2},{n:'Triplets',p:'DUDDUDDUDDUD',sub:3},{n:'Fingerpicking',p:'CEAECEAE',sub:2}];
+
+/* ---------- state ---------- */
+const KEY='ukulele-quest-v1';
+const day=(d=new Date())=>d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+const yday=()=>{const d=new Date();d.setDate(d.getDate()-1);return day(d)};
+let S={};
+function load(){let s=null;try{s=JSON.parse(localStorage.getItem(KEY))}catch(e){}
+ S=Object.assign({xp:0,stars:{},streak:0,last:'',best:0,ach:[],chords:[],daily:'',todayXP:0,today:'',perfect:0},s||{});
+ if(S.today!==day()){S.today=day();S.todayXP=0}
+ if(S.last!==day()&&S.last!==yday())S.streak=0}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+const GOAL=60;
+const lvl=xp=>Math.floor(Math.sqrt(xp/40))+1;
+const xpFor=l=>40*(l-1)**2;
+const TITLES=['Beach strummer','Sand picker','Wave rider','Reef rocker','Island star','Volcano virtuoso'];
+function addXP(n){if(S.today!==day()){S.today=day();S.todayXP=0}S.xp+=n;S.todayXP+=n}
+function bump(){const t=day();if(S.last===t)return;S.streak=S.last===yday()?S.streak+1:1;S.last=t}
+function addChord(c){if(!S.chords.includes(c))S.chords.push(c)}
+const unlocked=l=>l.idx===0||(S.stars[LESSONS[l.idx-1].id]||0)>=1;
+const worldDone=w=>WORLDS.find(x=>x.id===w).lessons.every(l=>(S.stars[l.id]||0)>=1);
+function known(){const k=S.chords.filter(c=>CH[c]);for(const c of ['C','Am','F','G'])if(k.length<4&&!k.includes(c))k.push(c);return k}
+const ACH=[
+ ['First strum','Finish your first lesson',()=>Object.keys(S.stars).length>=1],
+ ['Chord collector','Learn 5 chords',()=>S.chords.length>=5],
+ ['Chord hoarder','Learn 12 chords',()=>S.chords.length>=12],
+ ['On fire','3-day streak',()=>S.streak>=3],
+ ['Week warrior','7-day streak',()=>S.streak>=7],
+ ['Island habit','30-day streak',()=>S.streak>=30],
+ ['Rhythm ace','Perfect score on a rhythm drill',()=>S.perfect>0],
+ ['Speed demon','30 chord changes in a minute',()=>S.best>=30],
+ ['Beach graduate','Finish Basics',()=>worldDone('b')],
+ ['Reef rider','Finish Intermediate',()=>worldDone('i')],
+ ['Volcano master','Finish Advanced',()=>worldDone('a')],
+ ['Perfectionist','3 stars on 10 lessons',()=>Object.values(S.stars).filter(x=>x>=3).length>=10]];
+function checkAch(){const got=[];ACH.forEach(([n,,f])=>{if(!S.ach.includes(n)&&f()){S.ach.push(n);got.push(n)}});return got}
+
+/* ---------- audio ---------- */
+let ctx=null;
+function ac(){if(!ctx){const A=window.AudioContext||window.webkitAudioContext;ctx=new A()}if(ctx.state==='suspended')ctx.resume();return ctx}
+const pcache={};let live=[];
+function pluckBuf(m){if(pcache[m])return pcache[m];const c=ac(),sr=c.sampleRate,f=440*2**((m-69)/12),N=Math.max(2,Math.round(sr/f)),len=Math.floor(sr*1.8);
+ const b=c.createBuffer(1,len,sr),d=b.getChannelData(0),ring=new Float32Array(N);
+ for(let i=0;i<N;i++)ring[i]=Math.random()*2-1;
+ let lp=0;for(let i=0;i<N;i++){lp=lp*0.5+ring[i]*0.5;ring[i]=lp}
+ let ix=0;for(let i=0;i<len;i++){const nx=(ix+1)%N,v=ring[ix];ring[ix]=0.996*0.5*(v+ring[nx]);d[i]=v*0.6*(i>len-2000?(len-i)/2000:1);ix=nx}
+ return pcache[m]=b}
+function note(m,t,v){const c=ac(),s=c.createBufferSource(),g=c.createGain();s.buffer=pluckBuf(m);g.gain.value=v||0.5;s.connect(g).connect(c.destination);s.start(t||c.currentTime);live.push(s);return s}
+function strum(n,t,v,up){const c=ac();t=t||c.currentTime;let ms=chordMidi(n);if(up)ms=ms.reverse();ms.forEach((m,i)=>note(m,t+i*0.022,v||0.4));mic.mute=Math.max(mic.mute,t+2)}
+function click(t,acc){const c=ac(),o=c.createOscillator(),g=c.createGain();o.frequency.value=acc?3200:2500;g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(acc?0.35:0.2,t+0.003);g.gain.exponentialRampToValueAtTime(0.0001,t+0.05);o.connect(g).connect(c.destination);o.start(t);o.stop(t+0.07);live.push(o)}
+function sfx(ok){const c=ac(),t=c.currentTime;if(ok){note(72,t,0.3);note(76,t+0.09,0.3);note(79,t+0.18,0.3)}else{note(55,t,0.35);note(54,t+0.12,0.3)}}
+function stopLive(){live.forEach(n=>{try{n.stop()}catch(e){}});live=[]}
+function playNote(n){const m=noteMidi(n);note(m);mic.mute=Math.max(mic.mute,ac().currentTime+1.6)}
+
+/* ---------- microphone ---------- */
+const mic={on:false,h:null,mute:0,raf:0,env:0,lastOn:0};
+async function startMic(){const c=ac();
+ try{if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)throw new Error('none');
+  const st=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});
+  const src=c.createMediaStreamSource(st),an=c.createAnalyser();an.fftSize=8192;an.smoothingTimeConstant=0;src.connect(an);
+  const lp=c.createBiquadFilter();lp.type='lowpass';lp.frequency.value=1500;const an2=c.createAnalyser();an2.fftSize=1024;src.connect(lp).connect(an2);
+  Object.assign(mic,{on:true,an,an2,st,td:new Float32Array(an.fftSize),fd:new Float32Array(an.frequencyBinCount),od:new Float32Array(1024)});
+  if(mic.h)loop()}
+ catch(e){mic.on=false;sheet(`<h2>Listening is blocked here</h2><p>This page could not open your microphone. Inside the Claude app, pages are not allowed to use the mic.</p><p>To have the app listen to you play, open a copy of it straight in Safari or Chrome from a normal web address, such as your own GitHub Pages site.</p><p>Everything still works without it: you tap along in rhythm drills, and in the listening steps you play, then tap to carry on.</p><button class="btn go wide" data-close>Got it</button>`)}
+ top()}
+function stopMic(){if(mic.st)mic.st.getTracks().forEach(t=>t.stop());mic.on=false;top()}
+function listen(h){mic.h=h;if(h&&mic.on&&!mic.raf)loop()}
+function rmsNow(){const a=mic.td;mic.an.getFloatTimeDomainData(a);let s=0;const o=a.length-2048;for(let i=o;i<a.length;i++)s+=a[i]*a[i];return Math.sqrt(s/2048)}
+function pitch(){const a=mic.td,N=2048,o=a.length-N,sr=ctx.sampleRate,minL=Math.floor(sr/1100),maxL=Math.floor(sr/170),W=N-maxL-2;
+ const c=new Float32Array(maxL+2);
+ for(let l=minL;l<=maxL+1;l++){let s=0,e1=0,e2=0;for(let i=0;i<W;i++){const x=a[o+i],y=a[o+i+l];s+=x*y;e1+=x*x;e2+=y*y}c[l]=s/Math.sqrt(e1*e2+1e-12)}
+ let l=minL;while(l<maxL&&c[l]>0.3)l++;
+ let mx=0;for(let k=l;k<=maxL;k++)if(c[k]>mx)mx=c[k];
+ if(mx<0.6)return null;
+ for(let k=Math.max(l,minL+1);k<=maxL;k++){if(c[k]>0.9*mx&&c[k]>=c[k-1]&&c[k]>=c[k+1]){const y0=c[k-1],y1=c[k],y2=c[k+1],dd=y0-2*y1+y2;const sh=dd?(y0-y2)/(2*dd):0;return sr/(k+(Math.abs(sh)<1?sh:0))}}
+ return null}
+function chroma(){mic.an.getFloatFrequencyData(mic.fd);const bw=ctx.sampleRate/mic.an.fftSize,ch=new Array(12).fill(0);let tot=0;
+ const hi=Math.min(mic.fd.length,Math.floor(1900/bw));
+ for(let i=Math.ceil(180/bw);i<hi;i++){const m=10**(mic.fd[i]/20),e=m*m;const p=Math.round(12*Math.log2(i*bw/440))+69;ch[p%12]+=e;tot+=e}
+ return {ch,tot}}
+function cosC(n,cr){const a=cr.ch.map(Math.sqrt);let q=0;for(const v of a)q+=v*v;q=Math.sqrt(q)||1;let d=0;for(const p of PCS[n])d+=a[p];return d/(q*Math.sqrt(PCS[n].length))}
+function bestChord(cr){let b='',bs=0;for(const n in CH){const s=cosC(n,cr);if(s>bs){bs=s;b=n}}return b}
+function loop(){mic.raf=requestAnimationFrame(()=>{mic.raf=0;const h=mic.h;if(!mic.on||!h)return;const c=ctx;
+ if(h.onset){mic.an2.getFloatTimeDomainData(mic.od);let s=0;for(let i=512;i<1024;i++)s+=mic.od[i]*mic.od[i];const r=Math.sqrt(s/512);
+  if(r>0.015&&r>mic.env*1.7&&c.currentTime-mic.lastOn>0.11){mic.lastOn=c.currentTime;h.onset(c.currentTime-0.04)}mic.env=r}
+ if(c.currentTime>=mic.mute){const r=rmsNow();if(h.pitch)h.pitch(r>0.008?pitch():null,r);if(h.chroma)h.chroma(chroma(),r)}
+ loop()})}
+
+/* ---------- drawing ---------- */
+function diagram(fr,build){const f=String(fr).split('').map(Number);let s='<svg class="dia" viewBox="0 0 100 138" aria-hidden="true">';
+ for(let k=1;k<=5;k++)s+=`<line class="fr" x1="20" x2="80" y1="${20+k*20}" y2="${20+k*20}"/>`;
+ for(let i=0;i<4;i++)s+=`<line class="str" x1="${20+i*20}" x2="${20+i*20}" y1="20" y2="120"/>`;
+ s+='<line class="nut" x1="18" x2="82" y1="20" y2="20"/>';
+ f.forEach((v,i)=>{s+=v?`<circle class="dot" cx="${20+i*20}" cy="${20+(v-.5)*20}" r="7.5"/>`:`<circle class="opn" cx="${20+i*20}" cy="10" r="4"/>`});
+ SN.forEach((n,i)=>s+=`<text x="${20+i*20}" y="134">${n}</text>`);
+ if(build)for(let i=0;i<4;i++)for(let k=1;k<=5;k++)s+=`<rect class="hot" data-s="${i}" data-f="${k}" x="${10+i*20}" y="${20+(k-1)*20}" width="20" height="20"/>`;
+ return s+'</svg>'}
+function neck(list,curIx){const ys={A:18,E:40,C:62,G:84};let s='<svg viewBox="0 0 340 100" aria-hidden="true">';
+ for(let k=0;k<=5;k++)s+=`<line class="${k?'fr':'nut'}" x1="${40+k*58}" x2="${40+k*58}" y1="12" y2="90"/>`;
+ for(const n in ys)s+=`<line class="str" x1="40" x2="330" y1="${ys[n]}" y2="${ys[n]}"/><text x="10" y="${ys[n]+4}">${n}</text>`;
+ [3,5].forEach(k=>s+=`<text x="${40+(k-.5)*58}" y="99" style="font-size:9px">${k}</text>`);
+ list.forEach((n,i)=>{const f=+n.slice(1),x=f?40+(f-.5)*58:26,y=ys[n[0]],cur=curIx===undefined||i===curIx;
+  s+=`<circle class="${cur?'dot':'dot2'}" cx="${x}" cy="${y}" r="10"/><text class="dt" x="${x}" y="${y+4}">${noteName(n).replace('♭','b')}</text>`});
+ return s+'</svg>'}
+const chordCard=(c,lk)=>`<button class="ccard${lk?' lk':''}" data-hear="${c}" aria-label="Hear ${c}">${diagram(CH[c])}<b>${CHN(c)}</b><small>Tap to hear</small></button>`;
+function bindHear(el){el.querySelectorAll('[data-hear]').forEach(b=>b.onclick=()=>strum(b.dataset.hear));el.querySelectorAll('[data-note]').forEach(b=>b.onclick=()=>playNote(b.dataset.note))}
+function toast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2600)}
+function sheet(html){const d=document.createElement('div');d.className='sheet';d.innerHTML=`<div>${html}</div>`;document.body.appendChild(d);
+ d.addEventListener('click',e=>{if(e.target===d||e.target.closest('[data-close]'))d.remove()});bindHear(d);return d}
+
+/* ---------- top bar & tabs ---------- */
+function top(){const L=lvl(S.xp);
+ $('#streak').className='pill '+(S.last===day()?'fire':'cold');$('#streak').innerHTML=FLAME+S.streak;
+ $('#lvl').textContent='Lv '+L;
+ $('#micb').classList.toggle('on',mic.on);$('#micb').setAttribute('aria-pressed',mic.on);
+ $('#goalbar').style.width=Math.min(100,S.todayXP/GOAL*100)+'%';$('#goaltx').textContent=Math.min(S.todayXP,GOAL)+'/'+GOAL+' XP'}
+$('#micb').onclick=()=>{if(mic.on){stopMic();toast('Listening off')}else startMic().then(()=>{if(mic.on)toast('Listening on. Play away!')})};
+let tab='path',toolTab='tuner';
+document.querySelectorAll('.nav button').forEach(b=>b.onclick=()=>{tab=b.dataset.tab;render()});
+function render(){listen(null);metroStop();document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
+ ({path:rPath,practice:rPractice,tools:rTools,me:rMe})[tab]();top();window.scrollTo(0,0)}
+
+const SCENES={
+b:'<svg viewBox="0 0 400 130"><rect width="400" height="130" fill="#14808a"/><circle cx="320" cy="44" r="26" fill="#ffc53d"/><circle cx="320" cy="44" r="38" fill="#ffc53d" opacity=".2"/><path d="M0 78q50-14 100 0t100 0 100 0 100 0v52H0z" fill="#0d575e"/><path d="M0 92q50-12 100 0t100 0 100 0 100 0v38H0z" fill="#7fe0d8" opacity=".55"/><path d="M0 108q80-18 200-6t200-4v32H0z" fill="#f2d39a"/><path d="M60 108q2-34 22-52" stroke="#6b4a2b" stroke-width="5" fill="none"/><path d="M82 56q-26-8-38 6M82 56q-6-22-28-22M82 56q14-18 34-14M82 56q24-2 30 18" stroke="#2bb673" stroke-width="7" fill="none" stroke-linecap="round"/></svg>',
+i:'<svg viewBox="0 0 400 130"><rect width="400" height="130" fill="#0d4f5c"/><path d="M0 30q50-10 100 0t100 0 100 0 100 0" stroke="#7fe0d8" stroke-width="3" fill="none" opacity=".5"/><path d="M0 50q50-10 100 0t100 0 100 0 100 0" stroke="#7fe0d8" stroke-width="2" fill="none" opacity=".3"/><g fill="#ffc53d"><ellipse cx="280" cy="62" rx="20" ry="11"/><path d="M298 62l14-10v20z"/></g><g fill="#ff8a5b"><ellipse cx="335" cy="88" rx="14" ry="8"/><path d="M348 88l10-7v14z"/></g><circle cx="273" cy="59" r="2.5" fill="#173034"/><path d="M0 130V104q30-16 50 0 20-26 44 0 20-12 40 0v26z" fill="#ff5a6e" opacity=".8"/><path d="M150 130v-30q10-22 22 0 10-30 22 0v30z" fill="#c9f06b" opacity=".7"/></svg>',
+a:'<svg viewBox="0 0 400 130"><rect width="400" height="130" fill="#3a2a2e"/><circle cx="60" cy="30" r="2" fill="#fff" opacity=".6"/><circle cx="120" cy="16" r="1.5" fill="#fff" opacity=".5"/><circle cx="200" cy="34" r="1.5" fill="#fff" opacity=".5"/><circle cx="300" cy="40" r="18" fill="#8a6f73" opacity=".5"/><circle cx="322" cy="22" r="13" fill="#8a6f73" opacity=".4"/><path d="M190 130l70-76h40l70 76z" fill="#5a3b33"/><path d="M260 54h40l-6 10-8-4-6 12-6-10-8 6z" fill="#ff8a5b"/><path d="M276 66l-10 40M290 70l6 30" stroke="#ff8a5b" stroke-width="4" stroke-linecap="round"/><path d="M0 130v-20q60-14 120-6t80 4v22z" fill="#24363a"/></svg>'};
+
+function rPath(){const curL=LESSONS.find(l=>unlocked(l)&&!(S.stars[l.id]>=1));const xs=[0,54,80,54,0,-54,-80,-54];let h='';
+ if(curL&&S.last!==day())h+=`<div class="card"><h3>${S.streak?'Keep your '+S.streak+'-day streak alive':'Start a streak today'}</h3><p>Next up: ${curL.t}. About 5 minutes.</p><button class="btn go wide" data-open="${curL.id}">Play next lesson</button></div>`;
+ WORLDS.forEach(w=>{h+=`<section class="world">${SCENES[w.id]}<div class="wt"><h2>${w.name}</h2><p>${w.sub}</p></div></section><div class="trail">`;
+  w.lessons.forEach((l,i)=>{const u=unlocked(l),st=S.stars[l.id]||0,cur=l===curL;
+   h+=`<button class="stone" style="transform:translateX(${xs[i%8]}px)" data-open="${l.id}" aria-label="${l.t}${u?'':' (locked)'}"><span class="node${u?'':' lock'}${cur?' cur':''}" style="${u?'background:'+w.col:''}">${u?l.n:LOCK}</span><b>${l.t}</b><span class="stars">${[0,1,2].map(k=>star(k<st)).join('')}</span></button>`});
+  h+='</div>'});
+ $('#view').innerHTML=h;
+ $('#view').querySelectorAll('[data-open]').forEach(b=>b.onclick=()=>openLesson(LESSONS.find(l=>l.id===b.dataset.open)))}
+function openLesson(l){const u=unlocked(l),st=S.stars[l.id]||0;
+ const d=sheet(`<p class="kick">${l.w.name} · Lesson ${l.n}</p><h2>${l.t}</h2><p>${l.d}</p><div class="stars" style="margin-bottom:16px">${[0,1,2].map(k=>star(k<st)).join('')}</div>${u?`<button class="btn go wide" id="startL">${st?'Play again':'Start'}</button>`:`<p class="mute">Earn at least one star on the lesson before this to unlock it.</p><button class="btn wide" data-close>OK</button>`}`);
+ const b=d.querySelector('#startL');if(b)b.onclick=()=>{d.remove();ac();session(l.s,{title:l.t,lesson:l})}}
+
+function rPractice(){const dd=S.daily===day(),k=known();
+ $('#view').innerHTML=`<div class="card" style="background:var(--sea);color:#fff"><h3>Daily challenge</h3><p style="color:#d8f1ee">Six quick rounds mixed from what you know. ${dd?'Done for today. Come back tomorrow.':'Worth +40 bonus XP.'}</p><button class="btn sun wide" id="dly">${dd?'Play again for practice':'Start challenge'}</button></div>
+ <div class="card"><h3>Chord change speed run</h3><p>How many clean changes can you make in 60 seconds? Your best: <b>${S.best}</b> a minute.</p><div class="grid2"><select id="ca" aria-label="First chord">${k.map(c=>`<option>${c}</option>`).join('')}</select><select id="cb" aria-label="Second chord">${k.map((c,i)=>`<option ${i===1?'selected':''}>${c}</option>`).join('')}</select></div><button class="btn go wide" style="margin-top:12px" id="spd">Go</button></div>
+ <div class="card"><h3>Rhythm gym</h3><p>Any strum, any tempo, over random chords you know.</p><label class="f" for="pt">Pattern</label><select id="pt">${PATS.map((p,i)=>`<option value="${i}">${p.n}</option>`).join('')}</select><label class="f" for="bp">Tempo: <span id="bpv">75</span> bpm</label><input type="range" id="bp" min="50" max="130" value="75"><button class="btn go wide" id="gym">Start</button></div>
+ <div class="card"><h3>Ear gym</h3><p>Eight chords played by ear. Name each one.</p><button class="btn go wide" id="eg">Train my ear</button></div>`;
+ $('#bp').oninput=e=>$('#bpv').textContent=e.target.value;
+ $('#dly').onclick=()=>{ac();session(dailySteps(),{title:'Daily challenge',daily:!dd,practice:true})};
+ $('#spd').onclick=()=>{const a=$('#ca').value,b=$('#cb').value;if(a===b){toast('Pick two different chords');return}ac();session([chg(a,b,30)],{title:'Speed run',practice:true})};
+ $('#gym').onclick=()=>{const p=PATS[+$('#pt').value];ac();session([rhy(p.n,p.p,{sub:p.sub,bpm:+$('#bp').value,chords:shuffle(k).slice(0,4)})],{title:'Rhythm gym',practice:true})};
+ $('#eg').onclick=()=>{ac();session([ear(k.slice(0,6),8)],{title:'Ear gym',practice:true})}}
+function dailySteps(){const k=known(),c=shuffle(k),p=PATS[Math.min(PATS.length-2,Math.floor(S.chords.length/5))];
+ return [{k:'quiz',c:c[0],pool:k},{k:'ear',c:c[1],pool:k.slice(0,6).includes(c[1])?k.slice(0,6):[c[1],...k.slice(0,3)]},{k:'build',c:c[2]},{k:'quiz',c:c[3],pool:k},
+  rhy('Daily groove: '+p.n,p.p,{sub:p.sub,bpm:72,chords:c.slice(0,4)}),Object.assign(chg(c[0],c[1],24),{dur:30})]}
+
+let metro={on:false,id:0,next:0,beat:0,bpm:80,bpb:4,q:[]};
+function metroStop(){metro.on=false;clearInterval(metro.id);cancelAnimationFrame(metro.raf)}
+function rTools(){const t=toolTab;let h=`<div class="seg">${[['tuner','Tuner'],['metro','Metronome'],['lib','Chords']].map(([k,n])=>`<button data-t="${k}" class="${k===t?'on':''}">${n}</button>`).join('')}</div>`;
+ if(t==='tuner')h+=`<div class="card"><div class="gauge"><svg viewBox="0 0 200 120"><path class="arc" d="M20 100a80 80 0 0 1 160 0"/><path class="arc ok" d="M92 20.4a80 80 0 0 1 16 0"/><text x="20" y="116">flat</text><text x="180" y="116">sharp</text><line id="ndl" x1="100" y1="100" x2="100" y2="30" style="transform-origin:100px 100px"/></svg></div><div class="big" id="tnote">–<small id="tcent">${mic.on?'Pluck a string':'Turn on listening to tune by mic'}</small></div></div>
+ <p class="f" style="font-weight:800">Reference tones: tap a string and match it by ear</p><div class="tstr">${SN.map(n=>`<button data-ref="${n}0">${n}</button>`).join('')}</div>${mic.on?'':'<button class="btn go wide" style="margin-top:14px" id="tmic">Turn on listening</button>'}<p class="note">Standard tuning, high G: G4, C4, E4, A4.</p>`;
+ if(t==='metro')h+=`<div class="card"><div class="counter" id="mbpm">${metro.bpm}</div><p class="mute" style="text-align:center;margin:0">beats per minute</p><div class="mdots" id="mdots"></div><input type="range" id="mr" min="40" max="200" value="${metro.bpm}" aria-label="Tempo"><div class="row" style="justify-content:center"><button class="btn" id="m5">−5</button><button class="btn go" id="mgo" style="min-width:120px">${metro.on?'Stop':'Start'}</button><button class="btn" id="p5">+5</button></div><label class="f" for="mb">Beats per bar</label><select id="mb">${[2,3,4,6].map(b=>`<option ${b===metro.bpb?'selected':''}>${b}</option>`).join('')}</select></div>`;
+ if(t==='lib')h+=`<p class="mute" style="margin-top:0">Tap any chord to hear it. Faded ones you haven’t learned on the path yet.</p><div class="lib">${Object.keys(CH).map(c=>chordCard(c,!S.chords.includes(c))).join('')}</div>`;
+ $('#view').innerHTML=h;
+ $('#view').querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{toolTab=b.dataset.t;render()});
+ bindHear($('#view'));
+ if(t==='tuner'){$('#view').querySelectorAll('[data-ref]').forEach(b=>b.onclick=()=>{ac();playNote(b.dataset.ref);$('#view').querySelectorAll('[data-ref]').forEach(x=>x.classList.toggle('on',x===b))});
+  const tm=$('#tmic');if(tm)tm.onclick=()=>startMic().then(()=>{if(mic.on)render()});
+  let sm=null;listen({pitch:(f)=>{if(!f)return;const m=69+12*Math.log2(f/440);sm=sm==null||Math.abs(sm-m)>0.6?m:sm*0.7+m*0.3;
+   let bi=0;OPEN.forEach((o,i)=>{if(Math.abs(sm-o)<Math.abs(sm-OPEN[bi]))bi=i});const near=Math.abs(sm-OPEN[bi])<2.5;const r=Math.round(sm),cents=Math.round((sm-(near?OPEN[bi]:r))*100);
+   $('#tnote').firstChild.textContent=near?SN[bi]:NN[((r%12)+12)%12];$('#tcent').textContent=near?(Math.abs(cents)<=5?'In tune':cents<0?`${-cents} cents flat — tighten`:`${cents} cents sharp — loosen`):'Not a ukulele string';
+   const cc=Math.max(-50,Math.min(50,cents));$('#ndl').style.transform=`rotate(${cc*1.6}deg)`;$('#ndl').style.stroke=Math.abs(cents)<=5&&near?'var(--leaf)':''}})}
+ if(t==='metro'){const set=v=>{metro.bpm=Math.max(40,Math.min(200,v));$('#mbpm').textContent=metro.bpm;$('#mr').value=metro.bpm};
+  const dots=()=>$('#mdots').innerHTML=Array.from({length:metro.bpb},(_,i)=>`<i class="${i?'':'a'}"></i>`).join('');dots();
+  $('#mr').oninput=e=>set(+e.target.value);$('#m5').onclick=()=>set(metro.bpm-5);$('#p5').onclick=()=>set(metro.bpm+5);
+  $('#mb').onchange=e=>{metro.bpb=+e.target.value;dots()};
+  $('#mgo').onclick=e=>{if(metro.on){metroStop();e.target.textContent='Start';return}const c=ac();metro.on=true;metro.next=c.currentTime+0.1;metro.beat=0;metro.q=[];e.target.textContent='Stop';
+   metro.id=setInterval(()=>{while(metro.next<c.currentTime+0.12){click(metro.next,metro.beat%metro.bpb===0);metro.q.push([metro.next,metro.beat%metro.bpb]);metro.next+=60/metro.bpm;metro.beat++}},25);
+   const vis=()=>{if(!metro.on)return;while(metro.q.length&&metro.q[0][0]<=c.currentTime){const b=metro.q.shift()[1];const ds=document.querySelectorAll('#mdots i');ds.forEach((d,i)=>d.classList.toggle('on',i===b))}metro.raf=requestAnimationFrame(vis)};vis()}}}
+
+function rMe(){const L=lvl(S.xp),a=xpFor(L),b=xpFor(L+1),tot=Object.values(S.stars).reduce((x,y)=>x+y,0),done=Object.keys(S.stars).length;
+ $('#view').innerHTML=`<div class="card"><p class="kick" style="margin:0">Level ${L}</p><h3>${TITLES[Math.min(TITLES.length-1,Math.floor((L-1)/3))]}</h3><div class="meter" style="margin-top:10px"><i style="width:${(S.xp-a)/(b-a)*100}%"></i></div><p style="margin:4px 0 0">${S.xp-a} / ${b-a} XP to level ${L+1}</p></div>
+ <div class="tiles"><div class="tile"><b>${S.streak}</b><span>day streak</span></div><div class="tile"><b>${tot}</b><span>stars</span></div><div class="tile"><b>${S.best}</b><span>best changes/min</span></div><div class="tile"><b>${done}/${LESSONS.length}</b><span>lessons</span></div><div class="tile"><b>${S.chords.length}</b><span>chords</span></div><div class="tile"><b>${S.xp}</b><span>total XP</span></div></div>
+ <h3 style="margin:6px 0 10px;font-size:22px">Achievements</h3><div class="ach">${ACH.map(([n,d])=>{const on=S.ach.includes(n);return `<div><span class="${on?'':'off'}"><svg viewBox="0 0 40 40"><circle cx="20" cy="20" r="18" fill="${on?'#ffc53d':'#8aa'}"/><polygon transform="translate(8 8)" fill="#fff" points="12,2 15,9 22,9.5 16.5,14 18.5,21 12,17 5.5,21 7.5,14 2,9.5 9,9"/></svg></span><span><b>${n}</b><small>${d}</small></span></div>`}).join('')}</div>
+ <div class="card" style="margin-top:16px"><h3>Listening</h3><p>${mic.on?'The app is listening through your microphone.':'Off. The app checks your playing with taps and self-checks instead.'}</p><button class="btn ${mic.on?'':'go'}" id="mt">${mic.on?'Turn off':'Turn on listening'}</button></div>
+ <button class="btn ghost wide" id="rst">Reset all progress</button><p class="note">Progress is saved in this browser on this phone only.</p>`;
+ $('#mt').onclick=()=>{mic.on?stopMic():startMic().then(render);render()};
+ $('#rst').onclick=()=>{const d=sheet(`<h2>Reset everything?</h2><p>Your XP, stars, streak and achievements will be wiped. This can’t be undone.</p><div class="row"><button class="btn wide" data-close>Keep my progress</button><button class="btn wide" id="yes" style="background:var(--hib);color:#fff">Reset</button></div>`);
+  d.querySelector('#yes').onclick=()=>{try{localStorage.removeItem(KEY)}catch(e){}load();d.remove();render()}}}
+
+/* ---------- lesson player ---------- */
+let P=null;
+function expand(steps){const out=[];steps.forEach(s=>{if(s.k==='quiz'||s.k==='ear'){if(s.c){out.push(s);return}let bag=[];for(let i=0;i<s.n;i++){if(!bag.length)bag=shuffle(s.pool);out.push({k:s.k,c:bag.pop(),pool:s.pool})}}else out.push(s)});return out}
+function session(steps,meta){steps=expand(steps);const el=document.createElement('div');el.className='player';
+ el.innerHTML=`<div class="ph"><button class="x" aria-label="Quit">×</button><div class="bar"><i></i></div></div><main class="stage"></main><footer class="pf"></footer>`;
+ document.body.appendChild(el);document.body.style.overflow='hidden';
+ P={el,steps,meta,i:0,scores:[],stop:[],stage:el.querySelector('.stage'),ft:el.querySelector('.pf')};
+ el.querySelector('.x').onclick=()=>{cleanup();closeP()};
+ next()}
+function cleanup(){if(!P)return;listen(null);P.stop.forEach(f=>{try{f()}catch(e){}});P.stop=[];stopLive()}
+function closeP(){if(P)P.el.remove();P=null;document.body.style.overflow='';render()}
+function next(){cleanup();const p=P;p.el.querySelector('.ph .bar i').style.width=(p.i/p.steps.length*100)+'%';
+ if(p.i>=p.steps.length){finish();return}
+ const st=p.steps[p.i];p.stage.innerHTML='';p.ft.innerHTML='';p.stage.scrollTop=0;
+ const done=s=>{if(P!==p)return;p.scores.push(s);p.i++;next()};
+ ({info:stInfo,quiz:stQuiz,ear:stEar,build:stBuild,play:stPlay,notes:stNotes,rhythm:stRhythm,changes:stChanges,jam:stJam})[st.k](st,p.stage,p.ft,done)}
+function feedback(ft,ok,msg,go){ft.innerHTML=`<div class="fb ${ok?'ok':'no'}"><b></b><button class="btn go">Continue</button></div>`;ft.querySelector('b').textContent=msg;ft.querySelector('button').onclick=go;ft.querySelector('button').focus()}
+function finish(){const p=P,m=p.meta,sc=p.scores.filter(x=>x!=null),acc=sc.length?sc.reduce((a,b)=>a+b,0)/sc.length:1;
+ const stars=acc>=.9?3:acc>=.7?2:acc>=.5?1:0;let xp=Math.round(sc.length*8*acc)+stars*10+5;
+ if(m.daily&&stars){xp+=40;S.daily=day()}
+ if(m.lesson&&stars)S.stars[m.lesson.id]=Math.max(S.stars[m.lesson.id]||0,stars);
+ const prevL=lvl(S.xp);addXP(xp);if(stars)bump();const got=checkAch();save();top();
+ const lu=lvl(S.xp)>prevL;
+ p.el.querySelector('.ph .bar i').style.width='100%';
+ p.stage.innerHTML=`<div class="res"><p class="kick">${m.title}</p><h2>${stars===3?'Perfect!':stars===2?'Great playing!':stars===1?'Lesson passed':'Almost there'}</h2><div class="stars">${[0,1,2].map(k=>star(k<stars)).join('')}</div><p style="font-size:18px;font-weight:800">${Math.round(acc*100)}% accuracy</p><div class="gain">+${xp} XP</div>${lu?`<p class="kick" style="margin-top:14px">Level up! You’re now level ${lvl(S.xp)}.</p>`:''}<p class="mute" style="margin-top:14px">${stars?`Streak: ${S.streak} day${S.streak===1?'':'s'}`:'You need 50% to earn a star. Give it another go.'}</p></div>`;
+ p.ft.innerHTML=`<button class="btn ghost" id="again">Retry</button><button class="btn go" id="fin">Continue</button>`;
+ if(stars)sfx(true);
+ got.forEach((n,i)=>setTimeout(()=>toast('Achievement: '+n),600+i*2700));
+ $('#again').onclick=()=>{const s=p.steps.map(x=>x),mm=Object.assign({},m,{daily:false});p.el.remove();P=null;session(s,mm)};
+ $('#fin').onclick=closeP}
+
+function stInfo(st,el,ft,done){el.innerHTML=`<p class="kick">Learn</p><h2>${st.t}</h2><div class="prose">${st.h}</div>${st.ch?`<div class="chrow">${st.ch.map(c=>chordCard(c)).join('')}</div>`:''}${st.nts?`<div class="neck">${neck(st.nts)}</div><div class="row">${st.nts.map(n=>`<button class="btn" data-note="${n}">${noteName(n)}</button>`).join('')}</div>`:''}`;
+ if(st.ch)st.ch.forEach(addChord);bindHear(el);
+ ft.innerHTML='<button class="btn go">Continue</button>';ft.querySelector('button').onclick=()=>done(null)}
+function opts(ans,pool){return shuffle([ans,...shuffle(pool.filter(x=>x!==ans&&(isChord(x)||noteName(x)!==noteName(ans)))).slice(0,3)])}
+const label=x=>isChord(x)?CHN(x):noteName(x);
+function answer(el,ft,ans,done){el.querySelectorAll('.opt').forEach(b=>b.onclick=()=>{const ok=b.dataset.o===ans;el.querySelectorAll('.opt').forEach(x=>{x.disabled=true;if(x.dataset.o===ans)x.classList.add('right')});if(!ok)b.classList.add('wrong');sfx(ok);if(ok&&isChord(ans))strum(ans);feedback(ft,ok,ok?pick(['Nice!','Correct!','Spot on!','Yes!']):'It was '+label(ans),()=>done(ok?1:0))})}
+function stQuiz(st,el,ft,done){el.innerHTML=`<p class="kick">Quiz</p><h2>Which chord is this?</h2><div class="bigdia">${diagram(CH[st.c])}</div><div class="opts">${opts(st.c,st.pool).map(o=>`<button class="opt" data-o="${o}">${label(o)}</button>`).join('')}</div>`;answer(el,ft,st.c,done)}
+function stEar(st,el,ft,done){const ch=isChord(st.c),go=()=>ch?strum(st.c):playNote(st.c);
+ el.innerHTML=`<p class="kick">Ear training</p><h2>${ch?'Which chord do you hear?':'Which note do you hear?'}</h2><button class="bigplay" aria-label="Play again">${PLAY}</button><div class="opts">${opts(st.c,st.pool).map(o=>`<button class="opt" data-o="${o}">${label(o)}</button>`).join('')}</div>`;
+ el.querySelector('.bigplay').onclick=go;try{go()}catch(e){}answer(el,ft,st.c,done)}
+function stBuild(st,el,ft,done){const tgt=CH[st.c];let cur=[0,0,0,0],tries=0,hint=false;
+ el.innerHTML=`<p class="kick">Build it</p><h2 class="chname">${CHN(st.c)}</h2><p class="mute" style="text-align:center;margin:0">Tap the fretboard to place your fingers. Tap a dot again to lift it.</p><div class="bigdia build"></div>`;
+ const box=el.querySelector('.bigdia'),draw=()=>box.innerHTML=diagram(cur.join(''),true);draw();
+ box.onclick=e=>{const r=e.target.closest('[data-s]');if(!r)return;const s=+r.dataset.s,f=+r.dataset.f;cur[s]=cur[s]===f?0:f;draw();note(OPEN[s]+cur[s],0,0.3)};
+ ft.innerHTML='<button class="btn ghost" id="hn">Show me</button><button class="btn go" id="ck">Check</button>';
+ ft.querySelector('#hn').onclick=()=>{hint=true;cur=tgt.split('').map(Number);draw()};
+ ft.querySelector('#ck').onclick=()=>{if(cur.join('')===tgt){addChord(st.c);sfx(true);strum(st.c,ac().currentTime+0.35);feedback(ft,true,hint?'That’s the shape. Try it without help next time.':tries?'Got it!':'Perfect fingering!',()=>done(hint?0.4:tries===0?1:tries<3?0.7:0.5))}else{tries++;sfx(false);toast(cur.every(v=>!v)?'Place your fingers first':'Not quite. Check each string.')}}}
+function stPlay(st,el,ft,done){let hold=0,fin=false;
+ el.innerHTML=`<p class="kick">Your turn</p><h2>Strum ${CHN(st.c)}</h2><div class="bigdia">${diagram(CH[st.c])}</div>${mic.on?'<div class="meter"><i id="mv"></i></div>':''}<p class="mute">${mic.on?'Listening. Strum and let it ring.':'Play it on your uke and let it ring. Pick each string one by one to check none are buzzing.'}</p>`;
+ ft.innerHTML=`<button class="btn ghost" data-hear="${st.c}">Hear it</button><button class="btn go" id="ok">${mic.on?'Skip':'I played it'}</button>`;bindHear(ft);
+ const end=s=>{if(fin)return;fin=true;listen(null);addChord(st.c);sfx(true);feedback(ft,true,s===1?(mic.on?'Heard it! Clean chord.':'Nice. Keep it ringing.'):'Skipped',()=>done(s))};
+ if(mic.on)listen({chroma:(cr,r)=>{const sc=r>0.008?cosC(st.c,cr):0,mv=$('#mv');if(mv)mv.style.width=Math.round(Math.max(0,(sc-0.4)/0.5)*100)+'%';if(sc>0.72&&bestChord(cr)===st.c){if(++hold>10)end(1)}else hold=Math.max(0,hold-1)}});
+ ft.querySelector('#ok').onclick=()=>end(mic.on?0.5:1)}
+function stNotes(st,el,ft,done){let i=0,hold=0,sc=[];const seq=st.n;
+ const draw=()=>{const n=seq[i];el.innerHTML=`<p class="kick">Play the notes</p><h2>${st.t}</h2><div class="seq">${seq.map((x,j)=>`<span class="${j<i?'done':j===i?'now':''}">${noteName(x)}</span>`).join('')}</div><div class="neck">${neck([n])}</div><div class="big">${noteName(n)}<small>${n[0]} string, ${+n.slice(1)?'fret '+n.slice(1):'open'}</small></div><p class="mute" style="text-align:center">${mic.on?'Listening…':'Play it, then tap Next.'}</p>`;
+  ft.innerHTML=`<button class="btn ghost" id="hr">Hear it</button><button class="btn go" id="nx">${mic.on?'Skip':'Next'}</button>`;
+  ft.querySelector('#hr').onclick=()=>playNote(n);ft.querySelector('#nx').onclick=()=>adv(mic.on?0.4:1)};
+ const adv=s=>{sc.push(s);i++;hold=0;if(i>=seq.length){listen(null);sfx(true);el.querySelectorAll('.seq span').forEach(x=>x.className='done');feedback(ft,true,'Sequence complete!',()=>done(sc.reduce((a,b)=>a+b,0)/sc.length))}else draw()};
+ draw();
+ if(mic.on)listen({pitch:f=>{if(!f||i>=seq.length)return;const m=69+12*Math.log2(f/440);if(Math.abs(m-noteMidi(seq[i]))<0.5){if(++hold>5){note(84,0,0.15);adv(1)}}else hold=Math.max(0,hold-1)}})}
+
+function stRhythm(st,el,ft,done){
+ const sub=st.sub,meter=st.meter,chords=st.chords,bars=chords?chords.length:st.bars,spb=60/st.bpm,slot=spb/sub,syms=[...new Set(st.pat.replace(/\./g,''))];
+ const lab={D:'↓',U:'↑',X:'×'},padL={D:'↓ Down',U:'↑ Up',X:'× Chuck'};
+ el.innerHTML=`<p class="kick">${st.song?'Song':'Rhythm'} · ${st.bpm} bpm${meter===3?' · 3/4':''}</p><h2>${st.t}</h2><div class="rch" id="rch"></div><div class="lane" id="lane"><div class="hit"></div><div class="cnt" id="cnt"></div></div><div class="rstat"><span id="cmb"></span><span class="judg" id="jd"></span></div><div class="pads">${syms.map(s=>`<button class="pad" data-p="${s}">${padL[s]||s}</button>`).join('')}</div><p class="note">${mic.on?'Listening: strum your uke in time and every strum counts. Or tap the pads.':'Tap the pad as each note crosses the yellow line. Strum your uke at the same time.'}</p>`;
+ const lane=el.querySelector('#lane'),rch=el.querySelector('#rch'),cnt=el.querySelector('#cnt');
+ const showCh=b=>{if(!chords){rch.innerHTML=`<span class="nxt">Pattern: ${st.pat.split('').map(c=>c==='.'?'·':(lab[c]||c)).join(' ')}</span>`;return}const c=chords[Math.max(0,Math.min(bars-1,b))],n=chords[b+1];rch.innerHTML=`${diagram(CH[c])}<span class="now">${CHN(c)}</span>${n?`<span class="nxt">next: ${CHN(n)}</span>`:''}`};
+ showCh(0);
+ ft.innerHTML=`${chords?`<label class="tog"><input type="checkbox" id="bk" ${mic.on?'':'checked'}> Backing</label>`:''}<button class="btn go" id="go">Start</button>`;
+ let notesA=[],t0=0,raf=0,running=false,combo=0,maxC=0,taps=0,pf=0,gd=0,ms=0,cH=0,cF=0,endT=0;
+ const judge=(sym,t)=>{if(!running)return;taps++;let best=null,bd=1;for(const n of notesA){if(n.done)continue;const d=Math.abs(n.t-t);if(d<bd&&d<0.2&&(sym==='*'||n.s===sym)){bd=d;best=n}}
+  const jd=el.querySelector('#jd');if(!best){combo=0;jd.textContent=sym==='*'?'':'Off beat';jd.className='judg m';return}
+  best.done=true;best.g=bd<0.075?1:0.6;best.el.classList.add('hit');if(best.g===1){pf++;jd.textContent='Perfect';jd.className='judg p'}else{gd++;jd.textContent='Good';jd.className='judg g'}combo++;maxC=Math.max(maxC,combo);el.querySelector('#cmb').textContent=combo>2?combo+'× combo':''};
+ el.querySelectorAll('.pad').forEach(b=>b.addEventListener('pointerdown',e=>{e.preventDefault();const c=ctx;judge(b.dataset.p,c.currentTime-(c.outputLatency||0)-0.02);b.classList.add('fl');setTimeout(()=>b.classList.remove('fl'),90)}));
+ const keyMap={ArrowDown:'D',j:'D',ArrowUp:'U',k:'U',x:'X',' ':'X',g:'G',c:'C',e:'E',a:'A'};
+ const onKey=e=>{const s=keyMap[e.key];if(s&&syms.includes(s)){e.preventDefault();judge(s,ctx.currentTime-(ctx.outputLatency||0)-0.02)}};
+ document.addEventListener('keydown',onKey);P.stop.push(()=>document.removeEventListener('keydown',onKey),()=>{running=false;cancelAnimationFrame(raf)});
+ const start=()=>{const c=ac();stopLive();notesA.forEach(n=>n.el.remove());lane.querySelectorAll('.beat').forEach(x=>x.remove());
+  notesA=[];combo=maxC=taps=pf=gd=ms=cH=cF=0;el.querySelector('#cmb').textContent='';el.querySelector('#jd').textContent='';
+  const bk=el.querySelector('#bk'),back=bk&&bk.checked;t0=c.currentTime+0.5+meter*spb;endT=t0+bars*meter*spb+0.4;
+  for(let b=-1;b<bars;b++)for(let k=0;k<meter;k++)click(t0+(b*meter+k)*spb,k===0);
+  for(let b=0;b<bars;b++){if(back&&chords)for(let k=0;k<meter;k++)if(k===0||k===2)strum(chords[b],t0+(b*meter+k)*spb,k?0.16:0.24);
+   for(let j=0;j<st.pat.length;j++){const s=st.pat[j];if(s==='.')continue;const d=document.createElement('div');d.className='nt '+s;d.textContent=lab[s]||s;lane.appendChild(d);notesA.push({t:t0+(b*st.pat.length+j)*slot,s,el:d})}
+   for(let k=0;k<meter;k++){const d=document.createElement('div');d.className='beat'+(k?'':' bar1');lane.appendChild(d);notesA.push({t:t0+(b*meter+k)*spb,beat:true,el:d,done:true})}}
+  mic.mute=0;running=true;ft.innerHTML='<span class="mute">Playing… keep going!</span>';
+  if(mic.on)listen({onset:t=>judge('*',t),chroma:chords?(cr,r)=>{const nowB=Math.floor((ctx.currentTime-t0)/(meter*spb));if(nowB<0||nowB>=bars||r<0.01)return;cF++;if(cosC(chords[nowB],cr)>0.68)cH++}:null});
+  let lastB=-2;const W=lane.clientWidth,pps=Math.max(150,W*0.42),hitX=60;
+  const frame=()=>{if(!running)return;const now=ctx.currentTime-(ctx.outputLatency||0);
+   for(const n of notesA){const x=hitX+(n.t-now)*pps;if(x>-60&&x<W+60){n.el.style.transform=`translateX(${x}px)`;n.el.style.display=''}else n.el.style.display='none';
+    if(!n.done&&now-n.t>0.2){n.done=true;n.g=0;ms++;combo=0;n.el.classList.add('miss');const jd=el.querySelector('#jd');jd.textContent='Miss';jd.className='judg m';el.querySelector('#cmb').textContent=''}}
+   const bt=Math.floor((now-t0)/spb);cnt.textContent=bt<0?String(-bt):'';
+   const b=Math.floor((now-t0)/(meter*spb));if(b!==lastB&&b>=0){lastB=b;showCh(b)}
+   if(now>endT){running=false;listen(null);result();return}raf=requestAnimationFrame(frame)};
+  raf=requestAnimationFrame(frame)};
+ const result=()=>{const real=notesA.filter(n=>!n.beat),tot=real.length,sum=real.reduce((a,n)=>a+(n.g||0),0),racc=tot?sum/tot:0;
+  const fin=s=>{if(s>=0.999&&!st.song)S.perfect++;done(s)};
+  const summary=`${pf} perfect · ${gd} good · ${tot-pf-gd} missed`;
+  if(taps===0&&!mic.on){ft.innerHTML=`<div class="fb ok" style="flex-direction:column;align-items:stretch"><b>No taps recorded. How did your playing go?</b><div class="row"><button class="btn" data-r=".5">Rough</button><button class="btn" data-r=".75">Okay</button><button class="btn go" data-r="1">Nailed it</button></div></div><button class="btn ghost" id="rt">Try again with taps</button>`;
+   ft.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>fin(+b.dataset.r));ft.querySelector('#rt').onclick=start;return}
+  let s=racc;if(mic.on&&chords&&cF>20)s=0.65*racc+0.35*Math.min(1,cH/cF/0.8);
+  sfx(s>=0.5);ft.innerHTML=`<div class="fb ${s>=0.5?'ok':'no'}"><b>${Math.round(s*100)}% · ${summary}${maxC>4?' · best combo '+maxC:''}</b><button class="btn ghost" id="rt">Retry</button><button class="btn go" id="cn">Continue</button></div>`;
+  ft.querySelector('#rt').onclick=start;ft.querySelector('#cn').onclick=()=>fin(s)};
+ ft.querySelector('#go').onclick=start}
+
+function stChanges(st,el,ft,done){const A=st.a,B=st.b,dur=st.dur;let n=0,tgt=B,hold=0,left=dur,id=0,run=false;
+ el.innerHTML=`<p class="kick">Speed run · ${dur} seconds</p><h2>${CHN(A)} ↔ ${CHN(B)}</h2><div class="chg"><div id="cA">${diagram(CH[A])}<b>${CHN(A)}</b></div><div id="cB" class="tg">${diagram(CH[B])}<b>${CHN(B)}</b></div></div><div class="counter" id="cnum">0</div><p class="mute" style="text-align:center;margin:0" id="ctime">${mic.on?'Start on '+CHN(A)+'. Every clean change the app hears counts.':'Switch back and forth, strumming once on each chord. Count your changes.'}</p>`;
+ ft.innerHTML='<button class="btn go" id="go">Start</button>';
+ const setT=()=>{el.querySelector('#cA').classList.toggle('tg',tgt===A);el.querySelector('#cB').classList.toggle('tg',tgt===B)};
+ const end=()=>{run=false;clearInterval(id);listen(null);if(mic.on)score(n);else{let c=Math.round(dur/3);
+   ft.innerHTML=`<div style="width:100%"><p style="font-weight:800;margin:0;text-align:center">How many changes did you make?</p><div class="step"><button id="mn" aria-label="Fewer">−</button><span class="counter" id="sv" style="font-size:56px">${c}</span><button id="pl" aria-label="More">+</button></div><button class="btn go wide" id="ok">Save</button></div>`;
+   const sv=ft.querySelector('#sv');ft.querySelector('#mn').onclick=()=>{c=Math.max(0,c-1);sv.textContent=c};ft.querySelector('#pl').onclick=()=>{c++;sv.textContent=c};ft.querySelector('#ok').onclick=()=>score(c)}};
+ const score=c=>{const cpm=Math.round(c*60/dur);const rec=cpm>S.best;if(rec)S.best=cpm;save();sfx(true);feedback(ft,true,`${cpm} changes a minute${rec?' · new personal best!':''}`,()=>done(Math.min(1,cpm/st.goal)))};
+ ft.querySelector('#go').onclick=()=>{ac();run=true;left=dur;ft.innerHTML='<button class="btn ghost wide" id="stp">Finish early</button>';ft.querySelector('#stp').onclick=end;
+  const t=el.querySelector('#ctime');t.textContent=left+'s left';
+  id=setInterval(()=>{left--;t.textContent=left+'s left';if(left<=3&&left>0)click(ac().currentTime,true);if(left<=0)end()},1000);P.stop.push(()=>clearInterval(id));
+  if(mic.on)listen({chroma:(cr,r)=>{if(!run||r<0.01)return;if(cosC(tgt,cr)>0.7&&bestChord(cr)===tgt){if(++hold>4){n++;hold=0;tgt=tgt===A?B:A;setT();el.querySelector('#cnum').textContent=n}}else hold=Math.max(0,hold-1)}})}}
+
+function stJam(st,el,ft,done){const sc=['C0','C2','E0','E3','A0','A3','A5'],spb=60/st.bpm,bars=st.chords.length*st.loops;let raf=0,run=false;
+ el.innerHTML=`<p class="kick">Jam session</p><h2>Improvise over ${st.chords.map(CHN).join(' · ')}</h2><div class="rch" id="rch"></div><div class="neck">${neck(sc)}</div><p class="mute">The app plays the chords. You pick notes from the scale above, any order, any rhythm. Try starting and ending phrases on A.</p>`;
+ ft.innerHTML='<button class="btn go" id="go">Start the band</button>';
+ ft.querySelector('#go').onclick=()=>{const c=ac(),t0=c.currentTime+0.3;run=true;
+  for(let b=0;b<bars;b++)for(let k=0;k<4;k++){click(t0+(b*4+k)*spb,k===0);strum(st.chords[b%st.chords.length],t0+(b*4+k)*spb,k?0.14:0.22,k%2===1)}
+  ft.innerHTML='<button class="btn go wide" id="dn">I’m done jamming</button>';ft.querySelector('#dn').onclick=()=>done(null);
+  const rch=el.querySelector('#rch');let lb=-1;
+  const fr=()=>{if(!run)return;const b=Math.floor((ctx.currentTime-t0)/(4*spb));if(b!==lb&&b>=0&&b<bars){lb=b;const ch=st.chords[b%st.chords.length];rch.innerHTML=`${diagram(CH[ch])}<span class="now">${CHN(ch)}</span><span class="nxt">bar ${b+1} of ${bars}</span>`}if(b>=bars){rch.innerHTML='<span class="nxt">That’s the end of the backing. Nice jam!</span>';return}raf=requestAnimationFrame(fr)};fr();
+  P.stop.push(()=>{run=false;cancelAnimationFrame(raf)})}}
+
+load();if(S.last!==day()&&S.last!==yday())S.streak=0;save();render();
+}
+</script>
+</body>
+</html>
